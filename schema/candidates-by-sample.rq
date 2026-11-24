@@ -1,0 +1,16 @@
+PREFIX dcterms: <http://purl.org/dc/terms/>
+PREFIX prov: <http://www.w3.org/ns/prov#>
+PREFIX sosa: <http://www.w3.org/ns/sosa/>
+
+SELECT ?sample_id ?software ?procedure (COUNT(DISTINCT ?observation) AS ?candidates)
+WHERE {
+  ?acquisition prov:used ?sample ; dcterms:relation ?raw .
+  ?sample dcterms:identifier ?sample_id .
+  ?feature prov:wasDerivedFrom ?raw .
+  ?observation sosa:hasFeatureOfInterest ?feature ;
+               sosa:usedProcedure ?procedure ;
+               prov:used ?software ;
+               sosa:hasResult ?result .
+}
+GROUP BY ?sample_id ?software ?procedure
+ORDER BY ?sample_id ?software ?procedure

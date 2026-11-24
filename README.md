@@ -4,7 +4,9 @@
 
 The benchmark has compared [ENPKG and Isla Gabriola Flock](results/comparison.md) on the same raw data. [Submissions from additional pipelines are welcome](CONTRIBUTING.md).
 
-Both pipelines start with the same six raw spectra and sample metadata from [ENPKG toy dataset 0.2](https://doi.org/10.5281/zenodo.10018590). Triple counts describe graph size. The [ENPKG](submissions/enpkg-workstation/README.md) and [Flock](submissions/flock-workstation/README.md) runbooks explain annotation scope, local source changes and what another lab can reproduce.
+**[Download the four shared RDF graphs](rdf/README.md)** or [compare the Wikidata taxon–chemical pairs by annotation method](rdf/pair-summary.md). The [row-level evidence](rdf/pair-evidence.tsv) identifies the trial, pipeline, software and procedure behind each proposed association.
+
+Both pipelines start with the same six raw spectra and sample metadata from [ENPKG toy dataset 0.2](https://doi.org/10.5281/zenodo.10018590). The runbooks for [ENPKG with chemical Wikidata enrichment](submissions/enpkg-53aff82-workstation/README.md), the [original ENPKG baseline](submissions/enpkg-workstation/README.md) and [Flock](submissions/flock-workstation/README.md) explain which annotations contribute to each graph and how the trials were measured.
 
 ## Run a comparison
 

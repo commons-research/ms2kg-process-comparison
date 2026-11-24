@@ -1,0 +1,48 @@
+PREFIX dct: <http://purl.org/dc/terms/>
+PREFIX dwciri: <http://rs.tdwg.org/dwc/iri/>
+PREFIX prov: <http://www.w3.org/ns/prov#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX schema: <https://schema.org/>
+PREFIX sosa: <http://www.w3.org/ns/sosa/>
+PREFIX wd: <http://www.wikidata.org/entity/>
+PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+
+# Run against one pipeline and trial. Each output is a candidate association.
+SELECT DISTINCT ?taxon ?chemical ?software ?procedure ?strength
+WHERE {
+  # Start from the sample, then reach its observation through the acquisition's raw file.
+  {
+    ?sample a sosa:Sample ;
+            prov:wasDerivedFrom/^dct:subject/dwciri:toTaxon ?taxon ;
+            ^prov:used/dct:relation/^prov:wasDerivedFrom/^sosa:hasFeatureOfInterest ?observation .
+  }
+  {
+    ?observation sosa:observedProperty wd:Q500256 ;
+                 prov:used ?software ; sosa:usedProcedure ?procedure ; sosa:hasResult ?candidate .
+    ?candidate prov:wasDerivedFrom ?reference .
+    ?reference rdfs:seeAlso ?chemical .
+  }
+  FILTER(isIRI(?taxon) && REGEX(STR(?taxon), "^http://www[.]wikidata[.]org/entity/Q[1-9][0-9]*$"))
+  FILTER(isIRI(?chemical) && REGEX(STR(?chemical), "^http://www[.]wikidata[.]org/entity/Q[1-9][0-9]*$"))
+
+  OPTIONAL { ?candidate wdt:P235 ?candidateFull }
+  OPTIONAL { ?reference wdt:P235 ?referenceFull }
+  OPTIONAL {
+    ?candidate schema:identifier ?candidateIdentifier .
+    ?candidateIdentifier schema:value ?candidateShort .
+    FILTER EXISTS { ?candidateIdentifier schema:propertyID "InChIKey connectivity block" }
+  }
+  OPTIONAL {
+    ?reference schema:identifier ?referenceIdentifier .
+    ?referenceIdentifier schema:value ?referenceShort .
+    FILTER EXISTS { ?referenceIdentifier schema:propertyID "InChIKey connectivity block" }
+  }
+  # The profile encodes complete InChIKeys in P235 and 14-letter blocks in PropertyValue.
+  BIND(COALESCE(STR(?candidateFull), "") AS ?candidateKey)
+  BIND(COALESCE(STR(?referenceFull), "") AS ?referenceKey)
+  BIND(IF(?candidateKey != "", SUBSTR(?candidateKey, 1, 14), COALESCE(STR(?candidateShort), "")) AS ?candidateBlock)
+  BIND(IF(?referenceKey != "", SUBSTR(?referenceKey, 1, 14), COALESCE(STR(?referenceShort), "")) AS ?referenceBlock)
+  BIND(IF(STRLEN(?candidateKey) = 27 && ?candidateKey = ?referenceKey, "full-key",
+          IF(STRLEN(?candidateBlock) = 14 && ?candidateBlock = ?referenceBlock, "connectivity-only", "unverified")) AS ?strength)
+}
+ORDER BY ?taxon ?chemical ?software ?procedure ?strength

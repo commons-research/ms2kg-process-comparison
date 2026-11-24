@@ -1,0 +1,42 @@
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix dwc: <http://rs.tdwg.org/dwc/terms/> .
+@prefix dwciri: <http://rs.tdwg.org/dwc/iri/> .
+@prefix schema: <https://schema.org/> .
+@prefix sio: <http://semanticscience.org/resource/> .
+@prefix sample: <https://github.com/commons-research/ms2kg-process-comparison#10018590/sample/> .
+@prefix run: <https://github.com/commons-research/ms2kg-process-comparison#10018590/acquisition/> .
+@prefix file: <https://github.com/commons-research/ms2kg-process-comparison#10018590/file/> .
+@prefix source: <https://github.com/commons-research/ms2kg-process-comparison#10018590/source-material/> .
+@prefix identification: <https://github.com/commons-research/ms2kg-process-comparison#10018590/source-identification/> .
+@prefix polarity: <https://github.com/commons-research/ms2kg-process-comparison#10018590/scan-polarity/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix sosa: <http://www.w3.org/ns/sosa/> .
+@prefix obo: <http://purl.obolibrary.org/obo/> .
+@prefix wd: <http://www.wikidata.org/entity/> .
+
+sample:VGF151_E05 a prov:Entity, sosa:Sample ; dcterms:identifier "VGF151_E05" ; dcterms:type "sample" ; prov:wasDerivedFrom source:VGF151_E05 .
+sample:VGF138_A01 a prov:Entity ; dcterms:identifier "VGF138_A01" ; dcterms:type "qc" .
+sample:VGF140_H12 a prov:Entity ; dcterms:identifier "VGF140_H12" ; dcterms:type "blank" .
+
+identification:VGF151_E05 a dwc:Identification ; dcterms:subject source:VGF151_E05 ; dwc:verbatimIdentification "Datura stramonium" ; dwciri:toTaxon wd:Q30959 .
+
+run:VGF151_E05_pos.mzXML a prov:Activity, obo:OBI_0003097 ; prov:used sample:VGF151_E05 ; sio:SIO_000008 polarity:VGF151_E05_pos.mzXML ; dcterms:relation file:VGF151_E05_pos.mzXML .
+run:VGF151_E05_neg.mzXML a prov:Activity, obo:OBI_0003097 ; prov:used sample:VGF151_E05 ; sio:SIO_000008 polarity:VGF151_E05_neg.mzXML ; dcterms:relation file:VGF151_E05_neg.mzXML .
+run:VGF138_A01_pos.mzXML a prov:Activity, obo:OBI_0003097 ; prov:used sample:VGF138_A01 ; sio:SIO_000008 polarity:VGF138_A01_pos.mzXML ; dcterms:relation file:VGF138_A01_pos.mzXML .
+run:VGF138_A01_neg.mzXML a prov:Activity, obo:OBI_0003097 ; prov:used sample:VGF138_A01 ; sio:SIO_000008 polarity:VGF138_A01_neg.mzXML ; dcterms:relation file:VGF138_A01_neg.mzXML .
+run:VGF140_H12_pos.mzXML a prov:Activity, obo:OBI_0003097 ; prov:used sample:VGF140_H12 ; sio:SIO_000008 polarity:VGF140_H12_pos.mzXML ; dcterms:relation file:VGF140_H12_pos.mzXML .
+run:VGF140_H12_neg.mzXML a prov:Activity, obo:OBI_0003097 ; prov:used sample:VGF140_H12 ; sio:SIO_000008 polarity:VGF140_H12_neg.mzXML ; dcterms:relation file:VGF140_H12_neg.mzXML .
+
+polarity:VGF151_E05_pos.mzXML a obo:MS_1000130 .
+polarity:VGF151_E05_neg.mzXML a obo:MS_1000129 .
+polarity:VGF138_A01_pos.mzXML a obo:MS_1000130 .
+polarity:VGF138_A01_neg.mzXML a obo:MS_1000129 .
+polarity:VGF140_H12_pos.mzXML a obo:MS_1000130 .
+polarity:VGF140_H12_neg.mzXML a obo:MS_1000129 .
+
+file:VGF151_E05_pos.mzXML a prov:Entity, schema:MediaObject ; schema:name "VGF151_E05_pos.mzXML" ; schema:sha256 "103433dc0528c16f6180f8bf029d2a16b60e8b505eb5b885e415e523c324f19b" .
+file:VGF151_E05_neg.mzXML a prov:Entity, schema:MediaObject ; schema:name "VGF151_E05_neg.mzXML" ; schema:sha256 "6a4394cf9ed8f49aed6477d7802dc5bc2850e144c98c671cc785f814b7335ffc" .
+file:VGF138_A01_pos.mzXML a prov:Entity, schema:MediaObject ; schema:name "VGF138_A01_pos.mzXML" ; schema:sha256 "db7358b02f9099c3b8de012ed7c6a367e1c3d0edaed38d7f85ac2ddb1f82aaca" .
+file:VGF138_A01_neg.mzXML a prov:Entity, schema:MediaObject ; schema:name "VGF138_A01_neg.mzXML" ; schema:sha256 "5f69c95992e56a30453bd5b7b8fb2f5b7013e438d87f8abe859721ebbcaf1ac3" .
+file:VGF140_H12_pos.mzXML a prov:Entity, schema:MediaObject ; schema:name "VGF140_H12_pos.mzXML" ; schema:sha256 "a4490e24574f9e954fcd5e5d4565d74d89760813d6d4193a5e0cdc2de58af29f" .
+file:VGF140_H12_neg.mzXML a prov:Entity, schema:MediaObject ; schema:name "VGF140_H12_neg.mzXML" ; schema:sha256 "50e3f0497f73495a390397d357c355202f72af73d154ac63a2f028a62c631ce0" .

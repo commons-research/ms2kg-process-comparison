@@ -12,7 +12,9 @@ from zipfile import BadZipFile
 
 from benchmark import read_report
 from benchmark_input import prepare_input, verify_input
+from chemical_schema import export_chemicals
 from record_store import check_submission_directory, checked_directory, publish, slug, workspace_slug
+from shared_schema import READERS as SHARED_READERS, export_trial
 
 
 ROOT = Path(__file__).resolve().parent
@@ -149,6 +151,9 @@ def run_pipeline(name):
         print(f"Running {name} ({label})", flush=True)
         subprocess.run([*timed, *command], cwd=ROOT, env=environment, check=True, timeout=86400)
         verify_input(directory)
+        if name in SHARED_READERS:
+            export_trial(name, work, directory / "metadata/metadata.tsv")
+            export_chemicals(name, work)
     recover(build, workspace, cohort)
 
 

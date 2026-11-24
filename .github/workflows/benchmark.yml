@@ -22,6 +22,12 @@ jobs:
       - run: python -m pip install --requirement requirements.txt
       - run: python -B -m unittest discover
       - run: python -B benchmark.py publish --check
+      - run: python -B -m unittest discover -s rdf -p test_compare_pairs.py
+      - name: Verify the published taxon–chemical comparison from RDF
+        run: |
+          python -B rdf/compare_pairs.py --input-dir rdf --output-dir "$RUNNER_TEMP/pairs"
+          diff rdf/pair-summary.md "$RUNNER_TEMP/pairs/pair-summary.md"
+          cmp rdf/pair-evidence.tsv "$RUNNER_TEMP/pairs/pair-evidence.tsv"
       - uses: actions/upload-artifact@v7
         with:
           name: benchmark-comparison

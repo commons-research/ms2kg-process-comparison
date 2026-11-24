@@ -3,11 +3,13 @@ profiles := $(basename $(notdir $(wildcard pipelines/*.toml)))
 python := .venv/bin/python
 dependencies := .venv/.benchmark-dependencies
 
-.PHONY: help benchmarks results
+.PHONY: help benchmarks results shared pairs
 help:
 	@echo "Read results/comparison.md for the submitted comparison"
 	@echo "make pipeline <name>   Profiles: $(profiles)"
 	@echo "make benchmarks        Preview submitted and local records in build/comparison.md"
+	@echo "make shared            Check shared sample facts and compare chemical candidate inventories"
+	@echo "make pairs             Compare taxon and chemical Wikidata pairs in the four published RDF graphs"
 	@echo "make results           Regenerate results/comparison.md from submissions only"
 
 ifneq ($(filter pipeline,$(MAKECMDGOALS)),)
@@ -27,6 +29,12 @@ endif
 benchmarks: $(dependencies)
 	@$(python) -B benchmark.py compare --local-submissions build/records --latest build/latest
 	@echo "Open build/comparison.md"
+
+shared: $(dependencies)
+	@$(python) -B shared_schema.py $(if $(ENPKG),--enpkg "$(ENPKG)") $(if $(FLOCK),--flock "$(FLOCK)")
+
+pairs: $(dependencies)
+	@$(python) -B rdf/compare_pairs.py --input-dir rdf --output-dir rdf
 
 results: $(dependencies)
 	@$(python) -B benchmark.py publish
