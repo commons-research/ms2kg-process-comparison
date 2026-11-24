@@ -1,91 +1,83 @@
-#!/bin/sh
-# Run ENPKG preparation outside the timed section, then time RDF generation.
-set -eu
+#!/usr/bin/env bash
+set +x
+set -euo pipefail
+umask 077
+shopt -s nullglob dotglob
 
-here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-upstream="$here/upstream"
-revision=a6535a5dfda9f4c59c79f39401359cb14c521a86
+fail() { printf '%s\n' "$*" >&2; exit 1; }
+require_file() { [[ -f $1 && -s $1 ]] || fail "Missing or empty trial artifact $1"; }
+require_graph() {
+    require_file "$1"
+    LC_ALL=C grep -qm1 '^[[:space:]]*[^@#[:space:]]' "$1" || fail "No RDF statements in $1"
+}
+stage() {
+    printf 'Running ENPKG %s\n' "$1"
+    timeout -k 30s 4h sh -e "workflow/$1.sh"
+}
 
-if [ ! -d "$upstream/.git" ]; then
-    echo "Clone ENPKG into $upstream first (see README.md)." >&2
-    exit 1
-fi
-if [ "$(git -C "$upstream" rev-parse HEAD)" != "$revision" ]; then
-    echo "Expected upstream revision $revision; do not benchmark a different checkout." >&2
-    exit 1
-fi
-if [ ! -x "$upstream/.venv/bin/python" ] || [ ! -f "$upstream/.env" ]; then
-    echo "Install upstream dependencies and configure upstream/.env first." >&2
-    exit 1
-fi
-if [ ! -x /usr/bin/time ] || [ "$(uname -s)" != Darwin ]; then
-    echo "This runner measures peak memory using macOS /usr/bin/time -l." >&2
-    exit 1
-fi
-mode=${1:-fresh}
-if [ "$#" -gt 1 ] || { [ "$mode" != fresh ] && [ "$mode" != --resume-from-taxonomy ]; }; then
-    echo "Usage: sh legacy_enpkg/run.sh [--resume-from-taxonomy]" >&2
-    exit 2
-fi
-if [ "$mode" = fresh ] && { [ -e "$upstream/data/output" ] || [ -e "$upstream/sql_db" ]; }; then
-    echo "Existing upstream outputs/database detected. Use a fresh checkout for an independent run; no data was deleted." >&2
-    exit 1
-fi
-if [ "$mode" = --resume-from-taxonomy ] && {
-    [ ! -d "$upstream/data/output/individual_analysis" ] ||
-    [ -e "$upstream/sql_db" ] ||
-    [ -e "$upstream/data/output/standalone_graphs" ];
-}; then
-    echo "Resume requires stage 01–02 outputs, with no downstream database or exported graphs; no data was deleted." >&2
-    exit 1
-fi
+cd "${MS2KG_ROOT:?Run make pipeline enpkg}"
+installation=$(realpath "${ENPKG_ROOT:-$MS2KG_ROOT/legacy_enpkg/upstream}")
+work=${MS2KG_WORK:?}
+trial=$work/enpkg
+processed=$trial/data/input/enpkg_toy_dataset/msdata/processed
+[[ -d $processed ]] || fail 'Missing prepared ENPKG input directory.'
+existing=("$processed"/*)
+((${#existing[@]} == 0)) || fail 'Expected an empty ENPKG processed input directory.'
+raw_files=("${MS2KG_INPUT:?}/msdata/raw/"*.mzXML)
+((${#raw_files[@]} == 6)) || fail 'Expected six canonical toy raw files.'
 
-mkdir -p "$here/results"
-result=$(mktemp -d "$here/results/run-XXXXXXXX")
-printf '%s\n' "$revision" > "$result/upstream-revision.txt"
-printf '%s\n' "$mode" > "$result/run-mode.txt"
-git -C "$upstream" diff --binary > "$result/upstream-changes.patch"
-printf 'Logs and measurements: %s\n' "$result"
-
-# The legacy entry point does not stop on every failed sub-step. Run each stage
-# separately so a stage-level failure cannot be hidden by a later stage.
-(
-    cd "$upstream"
-    PATH="$PWD/.venv/bin:$PATH"
-    export PATH
-    set -a
-    . ./.env
-    set +a
-    stages="03_workflow_taxo_enhancer.sh 04_workflow_dl_ressources.sh 05_workflow_make_adducts.sh 06_workflow_annotate_mn_isdb.sh 07_workflow_annotate_sirius.sh 08_workflow_chemo_info_fetcher.sh 09_workflow_memo.sh"
-    if [ "$mode" = fresh ]; then
-        stages="01_0_workflow_data_download.sh 01_1_workflow_create_architecture.sh 02_workflow_massive_id.sh $stages"
-    fi
-    for stage in $stages
-    do
-        printf '\n=== %s ===\n' "$stage"
-        sh "workflow/$stage" || exit 1
+timeout -k 30s 4h bash legacy_enpkg/mzmine.sh legacy_enpkg/toy-unaligned.mzbatch 4
+for spectrum in "${raw_files[@]}"; do
+    stem=${spectrum##*/}
+    stem=${stem%.mzXML}
+    prefix=$work/output/$stem/$stem
+    for suffix in _iimn_fbmn.mgf _iimn_fbmn_quant.csv _sirius.mgf; do
+        require_file "$prefix$suffix"
+        ln -- "$prefix$suffix" "$processed/"
     done
-) > "$result/prepare.log" 2>&1 || {
-    echo "Preparation failed; see $result/prepare.log" >&2
-    exit 1
-}
+done
 
+source "$installation/.venv/bin/activate"
+[[ $VIRTUAL_ENV -ef $installation/.venv ]] || fail 'ENPKG activation selected a different environment.'
+export PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$trial/src"
+cd "$trial"
+sample=VGF151_E05
+analysis=data/output/individual_analysis
+positive=$analysis/$sample/pos
+stage 01_1_workflow_create_architecture
+stage 02_workflow_massive_id
+stage 03_workflow_taxo_enhancer
+require_file "$analysis/$sample/taxo_output/${sample}_taxo_metadata.tsv"
+stage 05_workflow_make_adducts
+stage 06_workflow_annotate_mn_isdb
+require_file "$positive/isdb/${sample}_isdb_reweighted_flat_pos.tsv"
+require_file "$positive/molecular_network/${sample}_mn_pos.graphml"
+printf 'Running SIRIUS with private log %s/sirius.log\n' "$work"
 (
-    cd "$upstream"
-    PATH="$PWD/.venv/bin:$PATH"
-    export PATH
-    set -a
-    . ./.env
-    set +a
-    /usr/bin/time -l sh workflow/10_workflow_graph_builder.sh
-) > "$result/graph.log" 2> "$result/time.txt" || {
-    echo "RDF generation failed; see $result/graph.log and $result/time.txt" >&2
-    exit 1
-}
+    if [[ -f $installation/.env ]]; then
+        set -a
+        source "$installation/.env"
+        set +a
+    fi
+    : "${SIRIUS_USERNAME:?Missing SIRIUS_USERNAME}" "${SIRIUS_PASSWORD:?Missing SIRIUS_PASSWORD}"
+    unset PATH_TO_SIRIUS
+    stage 07_workflow_annotate_sirius
+) >"$work/sirius.log" 2>&1
+for summary in formula_identifications structure_identifications canopus_formula_summary; do
+    require_file "$positive/${sample}_WORKSPACE_SIRIUS/$summary.tsv"
+done
+stage 08_workflow_chemo_info_fetcher
+require_file sql_db/structures_metadata.db
+stage 09_workflow_memo
+require_file data/output/memo_matrix/memo_matrix.gz
+stage 10_workflow_graph_builder
 
-"$upstream/.venv/bin/python" "$here/check_graph.py" \
-    "$upstream/data/output/standalone_graphs" > "$result/graphs.json" || {
-    echo "RDF validation failed; see $result/graphs.json and $result/graph.log" >&2
-    exit 1
-}
-printf 'RDF validated. Graph manifest: %s/graphs.json; timing: %s/time.txt\n' "$result" "$result"
+for fragment in metadata_module_enpkg features_pos features_spec2vec_pos sirius_pos canopus_pos isdb_pos individual_mn_pos structures_metadata; do
+    require_graph "$analysis/$sample/rdf/$fragment.ttl"
+done
+for specimen in "$sample" VGF138_A01 VGF140_H12; do
+    require_graph "$analysis/$specimen/rdf/metadata_enpkg.ttl"
+    graphs=(data/output/standalone_graphs/"MSV000087728_${specimen}_merged_graph_"*.ttl)
+    ((${#graphs[@]} == 1)) || fail "Expected one merged graph for $specimen."
+    require_graph "${graphs[0]}"
+done

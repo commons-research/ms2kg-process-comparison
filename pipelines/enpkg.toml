@@ -1,0 +1,3 @@
+prepare = ["bash", "legacy_enpkg/prepare.sh"]
+command = ["bash", "legacy_enpkg/run.sh"]
+rdf = ["enpkg/data/output/standalone_graphs/*.ttl"]

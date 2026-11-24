@@ -1,0 +1,3 @@
+prepare = ["bash", "flock/launch.sh", "prepare"]
+command = ["bash", "flock/launch.sh", "run"]
+rdf = ["flock/kg/graph-*.nq"]
