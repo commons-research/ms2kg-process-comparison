@@ -6,6 +6,8 @@ The benchmark has compared [ENPKG and Isla Gabriola Flock](results/comparison.md
 
 **[Download the four shared RDF graphs](rdf/README.md)** or [compare the Wikidata taxon–chemical pairs by annotation method](rdf/pair-summary.md). The [row-level evidence](rdf/pair-evidence.tsv) identifies the trial, pipeline, software and procedure behind each proposed association.
 
+**[Common schema (SHACL)](schema/shapes-v2.ttl)** · [How to read the shapes and validate a trial](schema/README.md). Run `make validate` to check all four published graphs.
+
 Both pipelines start with the same six raw spectra and sample metadata from [ENPKG toy dataset 0.2](https://doi.org/10.5281/zenodo.10018590). The runbooks for [ENPKG with chemical Wikidata enrichment](submissions/enpkg-53aff82-workstation/README.md), the [original ENPKG baseline](submissions/enpkg-workstation/README.md) and [Flock](submissions/flock-workstation/README.md) explain which annotations contribute to each graph and how the trials were measured.
 
 ## Run a comparison

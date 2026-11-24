@@ -93,7 +93,7 @@ def latest_workspace(build, pipeline):
 
 
 def compare_workspaces(workspaces):
-    reference = Graph().parse(ROOT / 'schema/toy-v2.ttl')
+    reference = Graph().parse(ROOT / 'fixtures/toy-v2.ttl')
     graphs = []
     inventories = {}
     for pipeline, workspace in workspaces.items():

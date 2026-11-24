@@ -58,7 +58,7 @@ def native_trial(trial):
 
 class SharedExportTest(unittest.TestCase):
     def test_both_native_formats_export_the_reference_graph(self):
-        expected = Graph().parse(ROOT / 'schema/toy-v2.ttl')
+        expected = Graph().parse(ROOT / 'fixtures/toy-v2.ttl')
         with tempfile.TemporaryDirectory() as scratch:
             trial = Path(scratch)
             metadata = native_trial(trial)
@@ -79,7 +79,7 @@ class SharedExportTest(unittest.TestCase):
             table = trial / 'output' / stem / f'{stem}_iimn_fbmn_quant.csv'
             table.write_text(f'row ID,{stem}.mzXML Peak area\n')
             export_trial('enpkg', trial, metadata)
-            self.assertTrue(isomorphic(Graph().parse(ROOT / 'schema/toy-v2.ttl'), Graph().parse(trial / 'shared-v2.ttl')))
+            self.assertTrue(isomorphic(Graph().parse(ROOT / 'fixtures/toy-v2.ttl'), Graph().parse(trial / 'shared-v2.ttl')))
 
     def test_missing_native_acquisition_cannot_be_filled_from_input(self):
         with tempfile.TemporaryDirectory() as scratch:
@@ -103,7 +103,7 @@ class SharedExportTest(unittest.TestCase):
             write_table(table, ['sample_id', 'source_taxon', 'wd.value'], [(sample, 'datura stramonium', '')])
             with sqlite3.connect(trial / 'flock/toy.sqlite') as store:
                 store.execute('DELETE FROM taxon_resolutions')
-            expected = Graph().parse(ROOT / 'schema/toy-v2.ttl')
+            expected = Graph().parse(ROOT / 'fixtures/toy-v2.ttl')
             expected.remove((None, URIRef('http://rs.tdwg.org/dwc/iri/toTaxon'), URIRef('http://www.wikidata.org/entity/Q30959')))
             for pipeline in ('enpkg', 'flock'):
                 with self.subTest(pipeline=pipeline):

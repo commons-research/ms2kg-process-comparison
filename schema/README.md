@@ -1,5 +1,17 @@
 # Shared RDF application profile, version 2
 
+**The common schema is [`shapes-v2.ttl`](shapes-v2.ttl).** It is a [W3C SHACL](https://www.w3.org/TR/shacl/) shapes graph. It defines what a trial must say about its materials, LC–MS acquisitions, raw files, features, annotation procedures, candidates and references. The names of the shapes belong to the validator. A pipeline uses the existing ontology terms in its output and does not need to add benchmark-specific types.
+
+| File | Purpose |
+|---|---|
+| [`schema/shapes-v2.ttl`](shapes-v2.ttl) | Reusable constraints for any pipeline emitting this profile |
+| [`fixtures/toy-v2.ttl`](../fixtures/toy-v2.ttl) | Expected sample and acquisition facts for the benchmark dataset |
+| [`rdf/*.ttl.gz`](../rdf/README.md) | Complete instance graphs from individual ENPKG and Flock trials |
+
+Run `make validate` from the repository root to check the four published trials separately. Run `make validate GRAPH=/path/to/trial.ttl` for a new pipeline. Supply the complete trial in one Turtle file, either plain or gzip-compressed, so the validator can follow a feature back to its acquired raw file. No ETL, online ontology service or Wikidata lookup is needed to validate. A violation returns a nonzero exit status and identifies the offending node and constraint.
+
+For example, every chemical observation must identify its software, procedure and candidate. The candidate may have no resolved chemical, or several alternative reference records. Similarly, a reported source identification can have a name without a Wikidata item. A conforming graph can therefore yield zero taxon–chemical pairs. Conformance checks the evidence structure. It cannot establish whether a taxonomic assignment or chemical identification is correct.
+
 Each trial exports two Turtle files. `shared-v2.ttl` describes the materials, acquisitions, raw files and reported source taxon. `chemicals-v2.ttl` describes candidate structures, the features they annotate and the evidence for their Wikidata associations. The two graphs join through the raw file IRI. The benchmark assigns identifiers to its data and uses external vocabularies to describe them.
 
 ## Generate and compare
@@ -12,7 +24,7 @@ make shared ENPKG=build/enpkg-rerun-53aff82d01/runner/build/enpkg.i9ncucs_ FLOCK
 
 Open `first/shared-v2.ttl` and `first/chemicals-v2.ttl` under either workspace. `second/` contains the independent second trial. Replay reads the verified source manifest and the trial's native records. No ETL, live Wikidata query or service credential is needed. The public measurement summaries alone cannot reconstruct these files. New pipeline runs generate both shared files outside the native raw-to-RDF timer.
 
-**Two different comparisons.** The sample graphs must match each other and the [independently specified toy graph](toy-v2.ttl). The candidate inventories may differ. `make shared` reports missing or extra sample triples, native candidate counts, the number with Wikidata associations, and distinct identifiers present on both sides or only one side. Shared chemical connectivity does not establish that the same chromatographic peak was annotated. Multiple hits may refer to one chemical, and multiple Wikidata items may share a full InChIKey.
+**Two different comparisons.** The sample graphs must match each other and the [expected instance graph for the toy dataset](../fixtures/toy-v2.ttl). The candidate inventories may differ. `make shared` reports missing or extra sample triples, native candidate counts, the number with Wikidata associations, and distinct identifiers present on both sides or only one side. Shared chemical connectivity does not establish that the same chromatographic peak was annotated. Multiple hits may refer to one chemical, and multiple Wikidata items may share a full InChIKey.
 
 ## Sample and acquisition facts
 

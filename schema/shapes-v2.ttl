@@ -1,0 +1,133 @@
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix dwc: <http://rs.tdwg.org/dwc/terms/> .
+@prefix dwciri: <http://rs.tdwg.org/dwc/iri/> .
+@prefix obo: <http://purl.obolibrary.org/obo/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <https://schema.org/> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix shape: <https://github.com/commons-research/ms2kg-process-comparison#shapes/v2/> .
+@prefix sio: <http://semanticscience.org/resource/> .
+@prefix sosa: <http://www.w3.org/ns/sosa/> .
+@prefix wd: <http://www.wikidata.org/entity/> .
+@prefix wdt: <http://www.wikidata.org/prop/direct/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# A complete trial must contain an LC-MS acquisition, even if there are no chemical hits.
+shape:TrialShape a sh:NodeShape ;
+    sh:targetNode obo:OBI_0003097 ;
+    sh:property [ sh:path [ sh:inversePath rdf:type ] ; sh:minCount 1 ;
+        sh:message "The trial must contain at least one LC-MS acquisition." ] .
+
+shape:MaterialShape a sh:NodeShape ;
+    sh:targetClass sosa:Sample ;
+    sh:nodeKind sh:IRI ;
+    sh:class prov:Entity ;
+    sh:property [ sh:path dcterms:identifier ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:minLength 1 ] ;
+    sh:property [ sh:path dcterms:type ; sh:minCount 1 ; sh:maxCount 1 ; sh:in ( "sample" "qc" "blank" ) ] ;
+    sh:property [ sh:path [ sh:inversePath prov:used ] ; sh:qualifiedValueShape [ sh:class obo:OBI_0003097 ] ; sh:qualifiedMinCount 1 ] ;
+    sh:or (
+        [ sh:class sosa:Sample ;
+          sh:property [ sh:path dcterms:type ; sh:hasValue "sample" ] ;
+          sh:property [ sh:path prov:wasDerivedFrom ; sh:maxCount 1 ; sh:node shape:SourceMaterialShape ] ]
+        [ sh:not [ sh:class sosa:Sample ] ;
+          sh:property [ sh:path dcterms:type ; sh:in ( "qc" "blank" ) ] ;
+          sh:property [ sh:path prov:wasDerivedFrom ; sh:maxCount 0 ] ]
+    ) .
+
+shape:SourceMaterialShape a sh:NodeShape ;
+    sh:nodeKind sh:IRI ;
+    sh:property [ sh:path [ sh:inversePath prov:wasDerivedFrom ] ; sh:qualifiedValueShape [ sh:class sosa:Sample ] ; sh:qualifiedMinCount 1 ] ;
+    sh:property [ sh:path [ sh:inversePath dcterms:subject ] ; sh:minCount 1 ; sh:class dwc:Identification ] .
+
+shape:SourceIdentificationShape a sh:NodeShape ;
+    sh:targetClass dwc:Identification ;
+    sh:targetSubjectsOf dwc:verbatimIdentification, dwciri:toTaxon ;
+    sh:class dwc:Identification ;
+    sh:nodeKind sh:IRI ;
+    sh:property [ sh:path dcterms:subject ; sh:minCount 1 ; sh:maxCount 1 ; sh:node shape:SourceMaterialShape ] ;
+    sh:property [ sh:path dwc:verbatimIdentification ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:minLength 1 ] ;
+    sh:property [ sh:path dwciri:toTaxon ; sh:maxCount 1 ; sh:nodeKind sh:IRI ; sh:pattern "^http://www\\.wikidata\\.org/entity/Q[1-9][0-9]*$" ] .
+
+shape:AcquisitionShape a sh:NodeShape ;
+    sh:targetClass obo:OBI_0003097 ;
+    sh:class prov:Activity, obo:OBI_0003097 ;
+    sh:nodeKind sh:IRI ;
+    sh:property [ sh:path prov:used ; sh:minCount 1 ; sh:maxCount 1 ; sh:node shape:MaterialShape ] ;
+    sh:property [ sh:path sio:SIO_000008 ; sh:minCount 1 ; sh:maxCount 1 ; sh:node shape:ScanPolarityShape ] ;
+    sh:property [ sh:path dcterms:relation ; sh:minCount 1 ; sh:maxCount 1 ; sh:class schema:MediaObject ] .
+
+shape:ScanPolarityShape a sh:NodeShape ;
+    sh:targetClass obo:MS_1000130, obo:MS_1000129 ;
+    sh:nodeKind sh:IRI ;
+    sh:xone ( [ sh:class obo:MS_1000130 ] [ sh:class obo:MS_1000129 ] ) ;
+    sh:property [ sh:path [ sh:inversePath sio:SIO_000008 ] ; sh:qualifiedValueShape [ sh:class obo:OBI_0003097 ] ; sh:qualifiedMinCount 1 ] .
+
+shape:RawFileShape a sh:NodeShape ;
+    sh:targetClass schema:MediaObject ;
+    sh:class prov:Entity, schema:MediaObject ;
+    sh:nodeKind sh:IRI ;
+    sh:property [ sh:path schema:name ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:minLength 1 ] ;
+    sh:property [ sh:path schema:sha256 ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:pattern "^[0-9a-fA-F]{64}$" ] ;
+    sh:property [ sh:path [ sh:inversePath dcterms:relation ] ; sh:qualifiedValueShape [ sh:class obo:OBI_0003097 ] ; sh:qualifiedMinCount 1 ; sh:qualifiedMaxCount 1 ] .
+
+shape:ChemicalObservation a sh:NodeShape ;
+    sh:targetClass sosa:Observation ;
+    sh:targetSubjectsOf sosa:hasResult ;
+    sh:class sosa:Observation ;
+    sh:property [ sh:path sosa:observedProperty ; sh:hasValue wd:Q500256 ; sh:maxCount 1 ],
+        [ sh:path dcterms:identifier ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:minLength 1 ],
+        [ sh:path dcterms:source ; sh:maxCount 1 ; sh:nodeKind sh:Literal ],
+        [ sh:path sosa:hasFeatureOfInterest ; sh:minCount 1 ; sh:maxCount 1 ],
+        [ sh:path sosa:hasResult ; sh:minCount 1 ; sh:maxCount 1 ],
+        [ sh:path sosa:usedProcedure ; sh:minCount 1 ; sh:maxCount 1 ; sh:nodeKind sh:IRI ; sh:disjoint prov:used ],
+        [ sh:path prov:used ; sh:minCount 1 ; sh:maxCount 1 ; sh:nodeKind sh:IRI ],
+        [ sh:path sio:SIO_000008 ; sh:class schema:PropertyValue ] .
+
+shape:AnnotatedFeature a sh:NodeShape ;
+    sh:targetObjectsOf sosa:hasFeatureOfInterest ;
+    sh:nodeKind sh:BlankNodeOrIRI ;
+    sh:property [ sh:path dcterms:identifier ; sh:minCount 1 ; sh:maxCount 1 ; sh:nodeKind sh:Literal ; sh:minLength 1 ],
+        [ sh:path prov:wasDerivedFrom ; sh:minCount 1 ; sh:maxCount 1 ; sh:nodeKind sh:IRI ; sh:class schema:MediaObject ] .
+
+shape:CandidateResult a sh:NodeShape ;
+    sh:targetClass sosa:Result ;
+    sh:targetObjectsOf sosa:hasResult ;
+    sh:class sosa:Result ;
+    sh:property [ sh:path [ sh:inversePath sosa:hasResult ] ; sh:minCount 1 ],
+        [ sh:path schema:smiles ; sh:datatype xsd:string ; sh:maxCount 1 ],
+        [ sh:path wdt:P234 ; sh:datatype xsd:string ; sh:maxCount 1 ],
+        [ sh:path wdt:P274 ; sh:datatype xsd:string ; sh:maxCount 1 ],
+        [ sh:path schema:identifier ; sh:node shape:ConnectivityKey ],
+        [ sh:path prov:wasDerivedFrom ; sh:node shape:ChemicalReference ] .
+
+shape:ChemicalReference a sh:NodeShape ;
+    sh:nodeKind sh:BlankNodeOrIRI ;
+    sh:property [ sh:path rdfs:seeAlso ; sh:minCount 1 ; sh:nodeKind sh:IRI ; sh:pattern "^http://www[.]wikidata[.]org/entity/Q[1-9][0-9]*$" ],
+        [ sh:path schema:identifier ; sh:node shape:ConnectivityKey ],
+        [ sh:path dcterms:source ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:minLength 1 ],
+        [ sh:path wdt:P2017 ; sh:datatype xsd:string ; sh:maxCount 1 ] .
+
+shape:ChemicalLabel a sh:PropertyShape ;
+    sh:targetClass sosa:Result ;
+    sh:path rdfs:label ; sh:datatype xsd:string ; sh:maxCount 1 .
+
+shape:PubChemIdentifier a sh:PropertyShape ;
+    sh:targetSubjectsOf wdt:P662 ; sh:path wdt:P662 ;
+    sh:nodeKind sh:Literal ; sh:pattern "^[1-9][0-9]*$" .
+
+shape:FullInChIKey a sh:PropertyShape ;
+    sh:targetSubjectsOf wdt:P235 ; sh:path wdt:P235 ;
+    sh:datatype xsd:string ; sh:maxCount 1 ; sh:maxLength 27 ; sh:pattern "^[A-Z]{14}-[A-Z]{10}-[A-Z]$" .
+
+shape:ConnectivityKey a sh:NodeShape ;
+    sh:class schema:PropertyValue ;
+    sh:property [ sh:path schema:propertyID ; sh:hasValue "InChIKey connectivity block" ],
+        [ sh:path schema:value ; sh:datatype xsd:string ; sh:maxLength 14 ; sh:pattern "^[A-Z]{14}$" ] .
+
+# Both native annotation attributes and connectivity keys use schema:PropertyValue.
+shape:NamedPropertyValue a sh:NodeShape ;
+    sh:targetClass schema:PropertyValue ;
+    sh:property [ sh:path schema:propertyID ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:minLength 1 ],
+        [ sh:path schema:value ; sh:minCount 1 ; sh:maxCount 1 ; sh:or ( [ sh:datatype xsd:decimal ] [ sh:datatype xsd:string ] ) ] .
