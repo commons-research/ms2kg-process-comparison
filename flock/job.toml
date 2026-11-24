@@ -1,0 +1,33 @@
+workspace = "."
+flock_root = "checkouts"
+
+[pipeline]
+stages = ["validate", "ingest", "enrich", "picoto", "register", "annotate", "chemical_enrich", "kg_export"]
+
+[dataset]
+root = "canonical-input"
+doi = "10.5281/zenodo.10018264"
+metadata = "metadata/metadata.tsv"
+ms_dir = "msdata/raw"
+taxon_column = "source_taxon"
+
+[database]
+path = "toy.sqlite"
+
+[picoto]
+output_dir = "picoto"
+jobs = 2
+
+[annotation]
+library = "references/isdb_lotus_pos_energySum.mgf"
+lotus_csv = "references/230106_frozen_metadata.csv"
+settings = "checkouts/hocofaisan/config/example.toml"
+
+[indexes]
+taxon_index = "wikidata/taxa.sqlite"
+chemical_index = "wikidata/chemicals.sqlite"
+create_missing = false
+
+[knowledge_graph]
+output_dir = "kg"
+allow_partial = false
