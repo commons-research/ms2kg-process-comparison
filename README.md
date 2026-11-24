@@ -2,7 +2,7 @@
 
 [![Benchmark](https://github.com/commons-research/ms2kg-process-comparison/actions/workflows/benchmark.yml/badge.svg)](https://github.com/commons-research/ms2kg-process-comparison/actions/workflows/benchmark.yml)
 
-**[View the ENPKG and Isla Gabriola Flock comparison](results/comparison.md)** for execution time, peak memory, graph characteristics and RDF repeatability. The report includes both trials of each pipeline. No installation is needed to read it.
+The benchmark has compared [ENPKG and Isla Gabriola Flock](results/comparison.md) on the same raw data. [Submissions from additional pipelines are welcome](CONTRIBUTING.md).
 
 Both pipelines start with the same six raw spectra and sample metadata from [ENPKG toy dataset 0.2](https://doi.org/10.5281/zenodo.10018590). Triple counts describe graph size. The [ENPKG](submissions/enpkg-workstation/README.md) and [Flock](submissions/flock-workstation/README.md) runbooks explain annotation scope, local source changes and what another lab can reproduce.
 
