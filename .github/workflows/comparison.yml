@@ -1,0 +1,26 @@
+name: Shared graph comparison
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - run: python -m pip install --requirement requirements.txt
+      - run: python -B -m unittest discover
+      - run: python -B -m unittest discover -s rdf
+      - name: Check the shapes and the toy material fixture
+        run: pyshacl -m -s schema/shapes-v2.ttl fixtures/toy-v2.ttl

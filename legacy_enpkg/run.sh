@@ -15,8 +15,8 @@ stage() {
     timeout -k 30s 4h sh -e "workflow/$1.sh"
 }
 
-cd "${MS2KG_ROOT:?Run make pipeline enpkg}"
-installation=$(realpath "${ENPKG_ROOT:-$MS2KG_ROOT/legacy_enpkg/upstream}")
+cd "${MS2KG_ROOT:?Run make compare}"
+installation=$(realpath -e -- "${ENPKG_ROOT:-$MS2KG_ROOT/legacy_enpkg/upstream-fixed}")
 work=${MS2KG_WORK:?}
 trial=$work/enpkg
 processed=$trial/data/input/enpkg_toy_dataset/msdata/processed

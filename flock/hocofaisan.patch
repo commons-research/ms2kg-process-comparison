@@ -1,0 +1,12 @@
+diff --git a/src/main.rs b/src/main.rs
+index 6ffb0a2..74e80ca 100644
+--- a/src/main.rs
++++ b/src/main.rs
+@@ -338,6 +338,7 @@ fn search_file(file: &FileRow, input: &Path, label: &str, settings: &Settings,
+             taxonomy: Some(SearchTaxonomyRequest {
+                 query_text: name.to_owned(), lotus_source_label: path_text(&lotus.path)?.to_owned(),
+                 lotus_csv_text: None, lotus_csv_path: Some(path_text(&lotus.path)?.to_owned()),
++                feature_sources: None,
+             }), query_key: None,
+         };
+         let artifact = match run_search_request(request.clone()) {

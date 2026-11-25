@@ -1,12 +1,12 @@
-# MZmine for the ENPKG raw-input benchmark
+# MZmine for ENPKG
 
 MZmine is the first timed stage of the [ENPKG workflow](README.md). Install it and configure a license before launching the full workflow from the comparison repository root.
 
 ```sh
-make pipeline enpkg
+make compare
 ```
 
-In each trial MZmine processes the six spectra separately with four threads. Intermediate exports are under `build/enpkg.*/{first,second}/output/`. ENPKG consumes the selected polarity and continues through RDF export under the same timer.
+MZmine processes the six spectra separately with four threads. The intermediate exports are in `runs/run-*/enpkg/output/`. ENPKG consumes the selected polarity and continues through RDF export under the same timer.
 
 ## Install MZmine 4.11.0
 
@@ -45,13 +45,13 @@ A token lets a headless batch claim an available online license without running 
 
 4. In the editor, paste the token between the single quotes on the `MZMINE_CLI_TOKEN=''` line. Add that line if missing. Save with `Ctrl+O`, `Enter`, then exit with `Ctrl+X`. Keep the populated `.env` on the benchmark host. Share only `.env.example`. Never paste the token into a shell command, chat or pull request.
 
-**Shared-server warning.** MZmine `4.11.0` accepts the token as a process argument and writes command arguments to debug logs. Anyone able to inspect the process arguments or read those logs can use the license. Use this method only where process arguments are private to trusted users. The launcher restricts new files and existing MZmine logs in the home directory. Keep raw logs and timing reports containing expanded commands out of submissions. For a [machine-specific offline license](https://mzmine.github.io/mzmine_documentation/latest/services/users.html#offline-use), set `MZMINE_LICENSE_FILE` to its absolute path instead of creating a token.
+**Shared-server warning.** MZmine `4.11.0` accepts the token as a process argument and writes command arguments to debug logs. Anyone able to inspect the process arguments or read those logs can use the license. Use this method only where process arguments are private to trusted users. The launcher restricts new files and existing MZmine logs in the home directory. Keep raw logs and expanded commands private. For a [machine-specific offline license](https://mzmine.github.io/mzmine_documentation/latest/services/users.html#offline-use), set `MZMINE_LICENSE_FILE` to its absolute path instead of creating a token.
 
 Each simultaneous token-authenticated run needs an available license and network access. A token expires after 30 days of inactivity. If exposed, revoke it immediately under **Account security → Device activity** by signing out `mzio pipeline / <token name>`, then generate a replacement. See the [official CLI token guide](https://mzmine.github.io/mzmine_documentation/latest/services/users.html#cli-tokens).
 
 ## Input and batch provenance
 
-The launcher uses `build/enpkg_toy_dataset.zip` if present, otherwise it downloads [toy release 0.2](https://zenodo.org/records/10018590). Set `ENPKG_ARCHIVE` to use a ZIP stored elsewhere. If Zenodo refuses the terminal download, save the ZIP from the record page as `build/enpkg_toy_dataset.zip` and rerun the same command. Every source goes through the same [archive and file checksums](../benchmark_input.py).
+The comparison uses [toy release 0.2](https://zenodo.org/records/10018590). To use a local copy, set `ENPKG_ARCHIVE` to the full path of the release ZIP. The runner verifies the [archive and individual input digests](../benchmark_input.py) before either trial.
 
 The versioned [toy batch](toy-unaligned.mzbatch) derives from the [MAPP reference batch at `c4669e7`](https://github.com/commons-teaching/sa2026-dbgi/blob/c4669e799e201c69153082e35a6b7efe2c77c9fe/docs/mapp_project_00050/mapp_batch_00283/results/mzmine/mapp_batch_00283.mzbatch). It uses per-spectrum feature lists, omits alignment and study-specific paths, and exports GNPS spectra, a `SIMPLE` peak-area table and SIRIUS spectra. The [MZmine CLI](https://mzmine.github.io/mzmine_documentation/latest/commandline_tool.html) supplies the input file and output stem for each run.
 
@@ -65,6 +65,4 @@ The MZmine `4.11.0` exporters append these suffixes to each CLI output stem. Che
 | `<stem>_iimn_fbmn_quant.csv` | Legacy quantification table with `row ID`, `row m/z`, `row retention time` and exactly one `Peak area` column |
 | `<stem>_sirius.mgf` | SIRIUS spectra |
 
-Stage only these files, with names unchanged, in the external ENPKG checkout's configured `source_path`. The [ENPKG organizer](https://github.com/enpkg/enpkg_full/blob/a6535a5dfda9f4c59c79f39401359cb14c521a86/01_enpkg_data_organization/src/create_architecture.py#L59-L147) matches their names against the raw filename stems in the sample TSV and renames them by sample and polarity. An extra matching CSV can overwrite the quantification table. Keep the sample TSV byte-identical to the canonical input.
-
-The [ENPKG launcher](README.md) performs the handoff inside each timed trial.
+The launcher stages only those three files per spectrum in the trial's configured `source_path`. The [ENPKG organizer](https://github.com/enpkg/enpkg_full/blob/53aff82d01be6856cfd12a9910ddb9fff93dc0bd/01_enpkg_data_organization/src/create_architecture.py#L59-L147) matches their names against the raw filename stems in the canonical sample table and renames them by sample and polarity.

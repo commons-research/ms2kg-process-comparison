@@ -64,8 +64,7 @@ class SharedExportTest(unittest.TestCase):
             metadata = native_trial(trial)
             for pipeline in ('enpkg', 'flock'):
                 with self.subTest(pipeline=pipeline):
-                    export_trial(pipeline, trial, metadata)
-                    emitted = Graph().parse(trial / 'shared-v2.ttl')
+                    emitted = export_trial(pipeline, trial, metadata)
                     self.assertTrue(isomorphic(expected, emitted), (expected - emitted, emitted - expected))
                     project = 'https://github.com/commons-research/ms2kg-process-comparison'
                     vocabulary = set(emitted.predicates()) | set(emitted.objects(None, RDF.type))
@@ -78,8 +77,8 @@ class SharedExportTest(unittest.TestCase):
             stem = 'VGF140_H12_neg'
             table = trial / 'output' / stem / f'{stem}_iimn_fbmn_quant.csv'
             table.write_text(f'row ID,{stem}.mzXML Peak area\n')
-            export_trial('enpkg', trial, metadata)
-            self.assertTrue(isomorphic(Graph().parse(ROOT / 'fixtures/toy-v2.ttl'), Graph().parse(trial / 'shared-v2.ttl')))
+            emitted = export_trial('enpkg', trial, metadata)
+            self.assertTrue(isomorphic(Graph().parse(ROOT / 'fixtures/toy-v2.ttl'), emitted))
 
     def test_missing_native_acquisition_cannot_be_filled_from_input(self):
         with tempfile.TemporaryDirectory() as scratch:
@@ -92,7 +91,6 @@ class SharedExportTest(unittest.TestCase):
             for pipeline in ('enpkg', 'flock'):
                 with self.subTest(pipeline=pipeline), self.assertRaises((ValueError, FileNotFoundError)):
                     export_trial(pipeline, trial, metadata)
-            self.assertFalse((trial / 'shared-v2.ttl').exists())
 
     def test_unresolved_taxon_keeps_the_name_without_inventing_an_item(self):
         with tempfile.TemporaryDirectory() as scratch:
@@ -107,5 +105,4 @@ class SharedExportTest(unittest.TestCase):
             expected.remove((None, URIRef('http://rs.tdwg.org/dwc/iri/toTaxon'), URIRef('http://www.wikidata.org/entity/Q30959')))
             for pipeline in ('enpkg', 'flock'):
                 with self.subTest(pipeline=pipeline):
-                    export_trial(pipeline, trial, metadata)
-                    self.assertTrue(isomorphic(expected, Graph().parse(trial / 'shared-v2.ttl')))
+                    self.assertTrue(isomorphic(expected, export_trial(pipeline, trial, metadata)))

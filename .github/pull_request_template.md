@@ -1,3 +1,1 @@
-Link the runnable profile, the submission runbook and the external pipeline revision used for both trials.
-
-Describe the timed boundary, RDF scope, evidence access and any limits on reproduction. Include the regenerated `results/` report for a measured submission.
+Describe which schema constraint, pipeline mapping or measurement changes. Link the relevant source term or pinned external workflow. Include a small example that demonstrates the effect on a native or reconciled graph. Keep private run directories and credentials out of the pull request.

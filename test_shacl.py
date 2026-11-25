@@ -3,9 +3,10 @@
 import unittest
 from pathlib import Path
 
-from pyshacl import validate
 from rdflib import Graph, Literal, Namespace, URIRef
 from rdflib.namespace import DCTERMS, PROV, RDFS, SOSA
+
+from schema.validate import validate_graph
 
 
 EXAMPLE = Namespace('urn:third:')
@@ -39,11 +40,8 @@ class SharedProfileTest(unittest.TestCase):
     def setUpClass(cls):
         cls.shapes = Graph().parse(SHAPES)
 
-    def conforms(self, graph):
-        return validate(graph, shacl_graph=self.shapes, abort_on_first=True)[0]
-
     def test_unresolved_identity_and_unfamiliar_method_are_valid(self):
-        self.assertTrue(self.conforms(Graph().parse(data=TRIAL, format='turtle')))
+        validate_graph(Graph().parse(data=TRIAL, format='turtle'), self.shapes)
 
     def test_broken_annotation_paths_and_identity_claims_are_rejected(self):
         for change in (
@@ -56,9 +54,10 @@ class SharedProfileTest(unittest.TestCase):
         ):
             graph = Graph().parse(data=TRIAL, format='turtle')
             change(graph)
-            with self.subTest(line=change.__code__.co_firstlineno):
-                self.assertFalse(self.conforms(graph))
+            with self.subTest(line=change.__code__.co_firstlineno), self.assertRaisesRegex(ValueError, 'Constraint Violation'):
+                validate_graph(graph, self.shapes)
 
     def test_an_unrelated_graph_does_not_pass_without_a_target(self):
         graph = Graph().add((EXAMPLE.note, RDFS.seeAlso, URIRef('urn:other:note')))
-        self.assertFalse(self.conforms(graph))
+        with self.assertRaisesRegex(ValueError, 'The trial must contain at least one LC-MS acquisition'):
+            validate_graph(graph, self.shapes)

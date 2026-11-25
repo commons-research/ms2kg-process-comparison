@@ -15,7 +15,7 @@ import yaml
 from packaging.requirements import Requirement
 
 
-REVISION = "a6535a5dfda9f4c59c79f39401359cb14c521a86"
+REVISION = "53aff82d01be6856cfd12a9910ddb9fff93dc0bd"
 TAXONOMY = "02_enpkg_taxo_enhancer/src/taxo_info_fetcher.py"
 LOCAL_TAXONOMY_SHA256 = "deb7eca47dbeeba193578bae0c59b797f5042e84679de57e33994b8c8c41a8a5"
 ISDB = Path("03_enpkg_mn_isdb_isdb_taxo")
@@ -34,13 +34,11 @@ def checkout(installed, trial):
     if git(installed, "rev-parse", "HEAD").decode().strip() != REVISION:
         raise SystemExit(f"Expected ENPKG at {REVISION} in {installed}")
     changes = git(installed, "diff", "--no-renames", "--name-only", REVISION, "--").decode().splitlines()
-    if changes and changes != [TAXONOMY]:
-        raise SystemExit(f"Unexpected tracked changes in ENPKG checkout: {changes}")
+    if changes != [TAXONOMY]:
+        raise SystemExit(f"Expected only the documented {TAXONOMY} patch in {installed}, found {changes}")
     trial.mkdir()
     git(trial, "clone", "--no-hardlinks", "--no-checkout", "--", str(installed), ".")
     git(trial, "checkout", "--detach", REVISION)
-    if not changes:
-        return {"kind": "clean upstream"}
     modified = (installed / TAXONOMY).read_bytes()
     if hashlib.sha256(modified).hexdigest() != LOCAL_TAXONOMY_SHA256:
         raise SystemExit(f"Unrecognized installed modification to {TAXONOMY}")

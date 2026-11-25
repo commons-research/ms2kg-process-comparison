@@ -1,4 +1,6 @@
 /.venv/
 /build/
+/runs/
+/flock/upstream/
 __pycache__/
 /.env

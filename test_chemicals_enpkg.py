@@ -3,8 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from rdflib import Graph, Literal, Namespace, RDF, URIRef
-from rdflib.compare import isomorphic
+from rdflib import Literal, Namespace, RDF, URIRef
 from rdflib.namespace import DCTERMS, PROV, RDFS, SOSA, XSD
 
 from chemical_schema import export_chemicals, inventory
@@ -15,7 +14,7 @@ from test_shared_schema import native_trial, write_table
 SIRIUS = Namespace('https://v6.docs.sirius-ms.io/methods-background/#')
 SEARCH_MODE = Namespace('https://github.com/sirius-ms/sirius/blob/v6.5.4/sirius-sdk/sirius-sdk.openapi/docs/SpectralMatchType.md#')
 ENPKG = URIRef('https://github.com/enpkg/enpkg_full')
-REWEIGHTING = URIRef(f'{ENPKG}/blob/a6535a5dfda9f4c59c79f39401359cb14c521a86/03_enpkg_mn_isdb_isdb_taxo/README.md')
+REWEIGHTING = URIRef(f'{ENPKG}/blob/53aff82d01be6856cfd12a9910ddb9fff93dc0bd/03_enpkg_mn_isdb_isdb_taxo/README.md')
 WD = Namespace('http://www.wikidata.org/entity/')
 WDT = Namespace('http://www.wikidata.org/prop/direct/')
 SAMPLE = 'VGF151_E05'
@@ -54,7 +53,6 @@ class EnpkgChemicalTest(unittest.TestCase):
             trial = Path(directory)
             chemical_trial(trial)
             graph = export_chemicals('enpkg', trial)
-            self.assertTrue(isomorphic(graph, Graph().parse(trial / 'chemicals-v2.ttl')))
             assert_external_vocabulary(self, graph)
             observations = set(graph.subjects(RDF.type, SOSA.Observation))
             self.assertEqual(len(observations), 4)
@@ -157,4 +155,3 @@ class EnpkgChemicalTest(unittest.TestCase):
                     write_table(isdb, ISDB_HEADER, [['4', '', '1', '9.5', 'ISDB', '', 'CCO', '', 'C2H6O']])
                 with self.assertRaises((FileNotFoundError, ValueError)):
                     export_chemicals('enpkg', trial)
-                self.assertFalse((trial / 'chemicals-v2.ttl').exists())

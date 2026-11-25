@@ -21,7 +21,7 @@ else
   find "$HOME" -maxdepth 1 -type f -user "$(id -un)" -name 'mzmine_*.log*' -exec chmod go-rwx -- {} +
 fi
 
-work=${MS2KG_WORK:?Run make pipeline enpkg}
+work=${MS2KG_WORK:?Run make compare}
 mkdir "$work/temp" "$work/output"
 for spectrum in "${MS2KG_INPUT:?}/msdata/raw/"*.mzXML; do
   stem=$(basename "$spectrum" .mzXML)

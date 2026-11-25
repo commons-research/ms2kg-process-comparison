@@ -1,23 +1,20 @@
-"""Export and compare the sample and acquisition profile without rerunning ETL."""
+"""Reconcile a trial's native sample, acquisition and chemical evidence."""
 
 import argparse
 import csv
-import sys
 from pathlib import Path
 from urllib.parse import quote
 
 from rdflib import Graph, Literal, Namespace, RDF
 from rdflib.namespace import DCTERMS, PROV, SDO, SOSA
 
-from benchmark_input import INPUT_DIGESTS, verify_input
-from chemical_schema import export_chemicals, inventory
+from benchmark_input import INPUT_DIGESTS
+from chemical_schema import export_chemicals
 from flock.shared import read_samples as read_flock
 from legacy_enpkg.shared import read_samples as read_enpkg
-from record_store import snapshot
 from shared_terms import DATA, FILES, WIKIDATA, write_turtle
 
 
-ROOT = Path(__file__).resolve().parent
 SAMPLES = Namespace(DATA + 'sample/')
 ACQUISITIONS = Namespace(DATA + 'acquisition/')
 SOURCE_MATERIALS = Namespace(DATA + 'source-material/')
@@ -32,7 +29,7 @@ READERS = {'enpkg': read_enpkg, 'flock': read_flock}
 
 
 def export_trial(pipeline, trial, metadata):
-    """Write one graph from native evidence, using the verified source table only to check coverage."""
+    """Build a graph from native evidence, using the verified source table to check coverage."""
     with metadata.open(encoding='utf-8', newline='') as stream:
         expected = {row['sample_id']: row for row in csv.DictReader(stream, delimiter='\t')}
     graph = Graph()
@@ -81,56 +78,19 @@ def export_trial(pipeline, trial, metadata):
             graph.add((artifact, SDO.sha256, Literal(INPUT_DIGESTS[f'msdata/raw/{filename}'])))
     if expected:
         raise ValueError(f'{pipeline}: missing sample records: {sorted(expected)}')
-    write_turtle(graph, trial / 'shared-v2.ttl')
     return graph
 
 
-def latest_workspace(build, pipeline):
-    pointer = build / 'latest' / pipeline
-    if not pointer.is_file():
-        raise ValueError(f'No latest {pipeline} workspace. Pass {pipeline.upper()}=build/<workspace> to make shared.')
-    return snapshot(build, pipeline, pointer.read_text(encoding='utf-8').removesuffix('\n')).parents[1]
-
-
-def compare_workspaces(workspaces):
-    reference = Graph().parse(ROOT / 'fixtures/toy-v2.ttl')
-    graphs = []
-    inventories = {}
-    for pipeline, workspace in workspaces.items():
-        source = workspace / 'input'
-        verify_input(source)
-        for label in ('first', 'second'):
-            trial = workspace / label
-            graph = export_trial(pipeline, trial, source / 'metadata/metadata.tsv')
-            graphs.append(graph)
-            missing, extra = reference - graph, graph - reference
-            print(f'{trial / "shared-v2.ttl"}: {len(graph)} triples, {len(missing)} missing and {len(extra)} extra against the toy reference')
-            for marker, difference in [('-', missing), ('+', extra)]:
-                for triple in sorted(difference):
-                    print(marker, *(term.n3() for term in triple))
-            observations, linked, identifiers = inventory(export_chemicals(pipeline, trial))
-            inventories[pipeline, label] = identifiers
-            print(f'{trial / "chemicals-v2.ttl"}: {observations} candidate assertions, {linked} with a native Wikidata association')
-    for label in ('first', 'second'):
-        enpkg = inventories['enpkg', label]
-        flock = inventories['flock', label]
-        for category in enpkg:
-            left, right = enpkg[category], flock[category]
-            print(f'{label} {category}: {len(left & right)} shared, {len(left - right)} ENPKG only, {len(right - left)} Flock only')
-    # The profile assigns IRIs to every resource and has no blank nodes.
-    agree = all(set(graph) == set(graphs[0]) for graph in graphs[1:])
-    print('All four sample/acquisition graphs agree.' if agree else 'Sample/acquisition graphs differ.')
-    return agree and set(graphs[0]) == set(reference)
+def reconcile(pipeline, trial, metadata):
+    graph = export_trial(pipeline, trial, metadata)
+    graph += export_chemicals(pipeline, trial)
+    write_turtle(graph, trial / 'reconciled.ttl')
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
-    for name in READERS:
-        parser.add_argument(f'--{name}', type=Path, help=f'completed {name} workspace (default: latest local record)')
+    parser.add_argument('pipeline', choices=READERS)
+    parser.add_argument('trial', type=Path)
+    parser.add_argument('metadata', type=Path)
     arguments = parser.parse_args()
-    try:
-        workspaces = {name: getattr(arguments, name) or latest_workspace(ROOT / 'build', name) for name in READERS}
-        if not compare_workspaces(workspaces):
-            sys.exit(1)
-    except (OSError, ValueError) as error:
-        parser.exit(1, f'Shared export failed: {error}\n')
+    reconcile(arguments.pipeline, arguments.trial, arguments.metadata)

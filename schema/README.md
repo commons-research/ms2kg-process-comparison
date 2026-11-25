@@ -1,30 +1,23 @@
 # Shared RDF application profile, version 2
 
-**The common schema is [`shapes-v2.ttl`](shapes-v2.ttl).** It is a [W3C SHACL](https://www.w3.org/TR/shacl/) shapes graph. It defines what a trial must say about its materials, LC–MS acquisitions, raw files, features, annotation procedures, candidates and references. The names of the shapes belong to the validator. A pipeline uses the existing ontology terms in its output and does not need to add benchmark-specific types.
+The tracked [`shapes-v2.ttl`](shapes-v2.ttl) is the authoritative common contract for both workflows. Its [W3C SHACL](https://www.w3.org/TR/shacl/) constraints describe the materials, LC–MS acquisitions, raw files, features, annotation procedures, candidates and references in each `reconciled.ttl`. The shapes have local names. Trial data use existing ontology terms.
 
-| File | Purpose |
-|---|---|
-| [`schema/shapes-v2.ttl`](shapes-v2.ttl) | Reusable constraints for any pipeline emitting this profile |
-| [`fixtures/toy-v2.ttl`](../fixtures/toy-v2.ttl) | Expected sample and acquisition facts for the benchmark dataset |
-| [`rdf/*.ttl.gz`](../rdf/README.md) | Complete instance graphs from individual ENPKG and Flock trials |
+## Maintain the contract
 
-Run `make validate` from the repository root to check the four published trials separately. Run `make validate GRAPH=/path/to/trial.ttl` for a new pipeline. Supply the complete trial in one Turtle file, either plain or gzip-compressed, so the validator can follow a feature back to its acquired raw file. No ETL, online ontology service or Wikidata lookup is needed to validate. A violation returns a nonzero exit status and identifies the offending node and constraint.
+Edit [`shapes-v2.ttl`](shapes-v2.ttl) when intentionally changing what a conforming graph may or must express. Exercise the intended constraint on a conforming example and a violating example in [`test_shacl.py`](../test_shacl.py). Apply the same contract to both workflows.
 
-For example, every chemical observation must identify its software, procedure and candidate. The candidate may have no resolved chemical, or several alternative reference records. Similarly, a reported source identification can have a name without a Wikidata item. A conforming graph can therefore yield zero taxon–chemical pairs. Conformance checks the evidence structure. It cannot establish whether a taxonomic assignment or chemical identification is correct.
+The tracked [`fixtures/toy-v2.ttl`](../fixtures/toy-v2.ttl) records the expected material and acquisition facts for the toy dataset. Edit it when those expected facts change and check both adapters against it. Chemical candidates can differ between workflows and do not belong in that fixture.
 
-Each trial exports two Turtle files. `shared-v2.ttl` describes the materials, acquisitions, raw files and reported source taxon. `chemicals-v2.ttl` describes candidate structures, the features they annotate and the evidence for their Wikidata associations. The two graphs join through the raw file IRI. The benchmark assigns identifiers to its data and uses external vocabularies to describe them.
+## Validate a graph offline
 
-## Generate and compare
+Install the [Python dependencies](../requirements.txt) and run the validator from the repository root. Pass each complete reconciled graph as a separate file. Plain and gzip-compressed Turtle are supported.
 
-The [published trial graphs](../rdf/README.md) can be queried without running either pipeline. After running both benchmark profiles, use `make shared` from the repository root to compare the latest local workspaces. With access to the retained [ENPKG `53aff82d01`](../submissions/enpkg-53aff82-workstation/README.md#measurement-and-reproduction) and [Flock](../submissions/flock-workstation/README.md#evidence-and-replay) workspaces, select them explicitly.
-
-```bash
-make shared ENPKG=build/enpkg-rerun-53aff82d01/runner/build/enpkg.i9ncucs_ FLOCK=build/flock.ecjbhcxk
+```sh
+workspace=/path/to/completed/workspace
+python schema/validate.py "$workspace/enpkg/reconciled.ttl" "$workspace/flock/reconciled.ttl"
 ```
 
-Open `first/shared-v2.ttl` and `first/chemicals-v2.ttl` under either workspace. `second/` contains the independent second trial. Replay reads the verified source manifest and the trial's native records. No ETL, live Wikidata query or service credential is needed. The public measurement summaries alone cannot reconstruct these files. New pipeline runs generate both shared files outside the native raw-to-RDF timer.
-
-**Two different comparisons.** The sample graphs must match each other and the [expected instance graph for the toy dataset](../fixtures/toy-v2.ttl). The candidate inventories may differ. `make shared` reports missing or extra sample triples, native candidate counts, the number with Wikidata associations, and distinct identifiers present on both sides or only one side. Shared chemical connectivity does not establish that the same chromatographic peak was annotated. Multiple hits may refer to one chemical, and multiple Wikidata items may share a full InChIKey.
+The validator reads local files without credentials or online lookups. A constraint violation produces a SHACL report naming the offending node and a nonzero exit status. A conforming trial may have no chemical hits or no resolved Wikidata taxon, so it can yield zero [taxon–chemical pairs](../rdf/README.md).
 
 ## Sample and acquisition facts
 
@@ -47,27 +40,25 @@ A computational [`sosa:Observation`](https://www.w3.org/TR/2017/REC-vocab-ssn-20
 
 The [ENPKG adapter](../legacy_enpkg/chemicals.py) reads final SIRIUS and reweighted ISDB reports and uses the native structure database where available. The [Flock adapter](../flock/chemicals.py) reads saved annotation hits, chemical-index entries and associated LOTUS structures. Both preserve tied or unresolved candidates. The native score and adduct text belong to their reporting method. No cross-method normalization is implied. The same feature number may refer to different signals across acquisitions or workflows.
 
-## Query both exports
+## Query one export
 
-The [sample-to-candidate query](candidates-by-sample.rq) counts assertions by sample, software and procedure. Run it on the first published ENPKG trial from the repository root. Substitute `rdf/flock-first.ttl.gz` to inspect Flock.
+The [sample-to-candidate query](candidates-by-sample.rq) counts assertions by sample, software and procedure. Run it on either workflow's `reconciled.ttl`. For a distinct pair comparison between workflows, follow the [offline pair query instructions](../rdf/README.md).
 
-```bash
-.venv/bin/python - rdf/enpkg-first.ttl.gz <<'PY'
-import gzip
+```sh
+python - "$workspace/enpkg/reconciled.ttl" <<'PY'
 import sys
 from pathlib import Path
 from rdflib import Graph
 
-with gzip.open(sys.argv[1], 'rb') as stream:
-    graph = Graph().parse(source=stream, format='turtle')
+graph = Graph().parse(Path(sys.argv[1]), format='turtle')
 query = Path('schema/candidates-by-sample.rq').read_text()
 for sample, software, procedure, count in graph.query(query):
     print(sample, software, procedure, count, sep='\t')
 PY
 ```
 
-To exercise both native formats without the full workspaces, install [the pinned dependencies](../requirements.txt) and run the following from the repository root:
+To check the common contract and its adapters against local examples, run the following from the repository root.
 
 ```bash
-.venv/bin/python -B -m unittest test_shared_schema test_chemical_schema test_chemicals_enpkg test_chemicals_flock
+python -B -m unittest test_shacl test_shared_schema test_chemical_schema test_chemicals_enpkg test_chemicals_flock
 ```

@@ -10,7 +10,7 @@ from rdflib.namespace import DCTERMS, PROV, SDO, SOSA, XSD
 from benchmark_input import INPUT_DIGESTS
 from flock.chemicals import read_candidates as read_flock
 from legacy_enpkg.chemicals import read_candidates as read_enpkg
-from shared_terms import FILES, WIKIDATA, write_turtle
+from shared_terms import FILES, WIKIDATA
 
 
 SIO = Namespace('http://semanticscience.org/resource/')
@@ -28,7 +28,7 @@ METHODS = {
     'sirius-denovo': (SIRIUS.MSNovelist, WIKIDATA.Q124358188, STRUCTURE_FIELDS),
     'sirius-spectral': (SPECTRAL_MODES.L8, WIKIDATA.Q124358188, SPECTRAL_FIELDS),
     'sirius-analog': (SPECTRAL_MODES.L10, WIKIDATA.Q124358188, SPECTRAL_FIELDS),
-    'isdb': (URIRef(f'{ENPKG}/blob/a6535a5dfda9f4c59c79f39401359cb14c521a86/03_enpkg_mn_isdb_isdb_taxo/README.md'),
+    'isdb': (URIRef(f'{ENPKG}/blob/53aff82d01be6856cfd12a9910ddb9fff93dc0bd/03_enpkg_mn_isdb_isdb_taxo/README.md'),
              ENPKG, ('rank_final', 'final_score', 'adduct')),
     'flock': (URIRef(f'{HOCOFAISAN}/blob/1d779f55165b1b227e16ebe126ec2675c47203c8/TECHNICAL.md#reference-preparation-and-annotation'),
               HOCOFAISAN, ('rank', 'combined_score', 'ADDUCT')),
@@ -132,9 +132,7 @@ def chemical_graph(pipeline, candidates):
 
 def export_chemicals(pipeline, trial):
     reader = {'enpkg': read_enpkg, 'flock': read_flock}[pipeline]
-    graph = chemical_graph(pipeline, reader(trial))
-    write_turtle(graph, trial / 'chemicals-v2.ttl')
-    return graph
+    return chemical_graph(pipeline, reader(trial))
 
 
 def inventory(graph):

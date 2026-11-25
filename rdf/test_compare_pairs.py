@@ -1,7 +1,6 @@
 """Exercise the offline export through its public command line."""
 
 import csv
-import gzip
 from pathlib import Path
 import subprocess
 import sys
@@ -47,27 +46,31 @@ class PairEvidenceTest(unittest.TestCase):
     def test_associations_follow_each_raw_file_and_compare_only_the_linked_keys(self):
         with tempfile.TemporaryDirectory() as temporary:
             directory = Path(temporary)
-            for trial in ('first', 'second'):
-                for pipeline in ('enpkg', 'flock'):
-                    with gzip.open(directory / f'{pipeline}-{trial}.ttl.gz', 'wt', encoding='utf-8') as graph:
-                        graph.write(FIXTURE if pipeline == 'enpkg' else FIXTURE.replace('wd:Q13', 'wd:Q14'))
+            for pipeline in ('enpkg', 'flock'):
+                trial = directory / pipeline
+                trial.mkdir()
+                (trial / 'reconciled.ttl').write_text(
+                    FIXTURE if pipeline == 'enpkg' else FIXTURE.replace('wd:Q13', 'wd:Q14'), encoding='utf-8')
             report = directory / 'report'
             subprocess.run([sys.executable, DIRECTORY / 'compare_pairs.py', '--input-dir', directory,
                             '--output-dir', report], check=True, timeout=30)
             with (report / 'pair-evidence.tsv').open(encoding='utf-8', newline='') as evidence:
                 rows = list(csv.DictReader(evidence, delimiter='\t'))
-            for trial in ('first', 'second'):
-                for pipeline, exclusive in [('enpkg', 'Q13'), ('flock', 'Q14')]:
-                    expected = [
-                        ('Q1', 'Q10', 'methodA', 'full-key', 'both'),
-                        ('Q1', 'Q11', 'methodA', 'connectivity-only', 'both'),
-                        ('Q1', 'Q12', 'methodA', 'unverified', 'both'),
-                        ('Q2', 'Q10', 'methodB', 'connectivity-only', 'both'),
-                        ('Q2', exclusive, 'methodB', 'unverified', pipeline + '-only'),
-                    ]
-                    self.assertCountEqual([
-                        (row['taxon'], row['chemical'], row['software'], row['procedure'], row['strength'], row['membership'])
-                        for row in rows if row['trial'] == trial and row['pipeline'] == pipeline
-                    ], [(WIKIDATA + taxon, WIKIDATA + chemical, 'https://example.org/software',
-                         'https://example.org/' + method, strength, membership)
-                        for taxon, chemical, method, strength, membership in expected])
+            self.assertEqual(len(rows), 10)
+            for pipeline, exclusive in [('enpkg', 'Q13'), ('flock', 'Q14')]:
+                expected = [
+                    ('Q1', 'Q10', 'methodA', 'full-key', 'both'),
+                    ('Q1', 'Q11', 'methodA', 'connectivity-only', 'both'),
+                    ('Q1', 'Q12', 'methodA', 'unverified', 'both'),
+                    ('Q2', 'Q10', 'methodB', 'connectivity-only', 'both'),
+                    ('Q2', exclusive, 'methodB', 'unverified', pipeline + '-only'),
+                ]
+                self.assertCountEqual([
+                    (row['taxon'], row['chemical'], row['software'], row['procedure'], row['strength'], row['membership'])
+                    for row in rows if row['pipeline'] == pipeline
+                ], [(WIKIDATA + taxon, WIKIDATA + chemical, 'https://example.org/software',
+                     'https://example.org/' + method, strength, membership)
+                    for taxon, chemical, method, strength, membership in expected])
+            summary = (report / 'pair-summary.md').read_text(encoding='utf-8').splitlines()
+            self.assertIn('| 5 | 5 | 4 | 1 | 1 | 6 |', summary)
+            self.assertIn('| enpkg | [software](<https://example.org/software>) | All procedures | 5 | 4 | 1 | 1 | 2 | 2 |', summary)

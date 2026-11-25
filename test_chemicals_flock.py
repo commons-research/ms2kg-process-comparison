@@ -63,7 +63,6 @@ class FlockChemicalExportTest(unittest.TestCase):
             trial = Path(scratch)
             flock_fixture(trial)
             graph = export_chemicals('flock', trial)
-            self.assertTrue((trial / 'chemicals-v2.ttl').is_file())
         assert_external_vocabulary(self, graph)
         observations = set(graph.subjects(RDF.type, SOSA.Observation))
         self.assertEqual(len(observations), 3)
@@ -125,4 +124,3 @@ class FlockChemicalExportTest(unittest.TestCase):
                 store.execute('DELETE FROM annotation_hits WHERE run_id = 9 AND rank = 2')
             with self.assertRaisesRegex(ValueError, 'hit count'):
                 export_chemicals('flock', trial)
-            self.assertFalse((trial / 'chemicals-v2.ttl').exists())
